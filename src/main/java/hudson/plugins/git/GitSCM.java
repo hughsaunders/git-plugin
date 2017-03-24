@@ -400,20 +400,26 @@ public class GitSCM extends GitSCMBackwardCompatibility {
         return getParamExpandedRepos(build, new LogTaskListener(LOGGER, Level.INFO));
     }
 
+    public List<RemoteConfig> getParamExpandedRepos(Run<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+      EnvVars env = build.getEnvironment(listener);
+      return getParamExpandedRepos(build, listener, env);
+    }
+
+
     /**
      * Expand parameters in {@link #remoteRepositories} with the parameter values provided in the given build
      * and return them.
      *
      * @param build run whose local branch name is returned
      * @param listener build log
+     * @param env Environment
      * @throws IOException on input or output error
      * @throws InterruptedException when interrupted
      * @return can be empty but never null.
      */
-    public List<RemoteConfig> getParamExpandedRepos(Run<?, ?> build, TaskListener listener) throws IOException, InterruptedException {
+    public List<RemoteConfig> getParamExpandedRepos(Run<?, ?> build, TaskListener listener, EnvVars env) throws IOException, InterruptedException {
         List<RemoteConfig> expandedRepos = new ArrayList<>();
 
-        EnvVars env = build.getEnvironment(listener);
 
         for (RemoteConfig oldRepo : Util.fixNull(remoteRepositories)) {
             expandedRepos.add(getParamExpandedRepo(env, oldRepo));
@@ -619,7 +625,7 @@ public class GitSCM extends GitSCMBackwardCompatibility {
 
             GitClient git = createClient(listener, environment, project, Jenkins.getInstance(), null);
 
-            for (RemoteConfig remoteConfig : getParamExpandedRepos(lastBuild, listener)) {
+            for (RemoteConfig remoteConfig : getParamExpandedRepos(lastBuild, listener, environment)) {
                 String remote = remoteConfig.getName();
                 List<RefSpec> refSpecs = getRefSpecs(remoteConfig, environment);
 
@@ -699,7 +705,7 @@ public class GitSCM extends GitSCMBackwardCompatibility {
             listener.getLogger().println("Fetching changes from the remote Git repositories");
 
             // Fetch updates
-            for (RemoteConfig remoteRepository : getParamExpandedRepos(lastBuild, listener)) {
+            for (RemoteConfig remoteRepository : getParamExpandedRepos(lastBuild, listener, environment)) {
                 fetchFrom(git, listener, remoteRepository);
             }
 
